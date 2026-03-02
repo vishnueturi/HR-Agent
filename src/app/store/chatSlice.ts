@@ -1,0 +1,185 @@
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+export interface Message {
+  id: string;
+  type: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  codeBlocks?: CodeBlock[];
+  images?: ImageData[];
+  charts?: ChartData[];
+  files?: FileAttachment[];
+  audio?: AudioData;
+  attachments?: Array<{
+    file: File;
+    preview?: string;
+    type: 'image' | 'document';
+  }>;
+}
+
+export interface CodeBlock {
+  language: string;
+  code: string;
+}
+
+export interface ChartData {
+  type: 'bar' | 'line';
+  data: any[];
+  title?: string;
+}
+
+export interface FileAttachment {
+  name: string;
+  type: string;
+  size: string;
+  url?: string;
+}
+
+export interface ImageData {
+  url: string;
+  alt?: string;
+  caption?: string;
+}
+
+export interface AudioData {
+  url: string;
+  title?: string;
+}
+
+export interface Chat {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface ChatState {
+  chats: Chat[];
+  currentChatId: string | null;
+  attachedFiles: Array<{
+    file: File;
+    type: 'image' | 'document';
+    preview?: string;
+  }>;
+}
+
+// Helper function to generate chat title from first message
+function generateChatTitle(message: string): string {
+  const words = message.trim().split(/\s+/);
+  const title = words.slice(0, 6).join(' ');
+  return title.length < message.length ? title + '...' : title;
+}
+
+const initialState: ChatState = {
+  chats: [],
+  currentChatId: null,
+  attachedFiles: [],
+};
+
+const chatSlice = createSlice({
+  name: 'chat',
+  initialState,
+  reducers: {
+    createNewChat: (state) => {
+      const newChat: Chat = {
+        id: Date.now().toString(),
+        title: 'New chat',
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      state.chats.unshift(newChat);
+      state.currentChatId = newChat.id;
+    },
+    
+    switchChat: (state, action: PayloadAction<string>) => {
+      state.currentChatId = action.payload;
+      state.attachedFiles = [];
+    },
+    
+    addMessage: (state, action: PayloadAction<Message>) => {
+      const message = action.payload;
+      
+      // If no current chat exists, create one with the message
+      if (!state.currentChatId) {
+        const title = message.type === 'user' ? generateChatTitle(message.content) : 'New chat';
+        const newChat: Chat = {
+          id: Date.now().toString(),
+          title: title,
+          messages: [message],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        state.chats.unshift(newChat);
+        state.currentChatId = newChat.id;
+      } else {
+        // Add message to current chat
+        const chat = state.chats.find(c => c.id === state.currentChatId);
+        if (chat) {
+          chat.messages.push(message);
+          // Auto-generate title from first user message
+          if (chat.title === 'New chat' && message.type === 'user' && chat.messages.length === 1) {
+            chat.title = generateChatTitle(message.content);
+          }
+          chat.updatedAt = new Date();
+        }
+      }
+    },
+    
+    updateChatTitle: (state, action: PayloadAction<{ chatId: string; title: string }>) => {
+      const { chatId, title } = action.payload;
+      const chat = state.chats.find(c => c.id === chatId);
+      if (chat) {
+        chat.title = title;
+        chat.updatedAt = new Date();
+      }
+    },
+    
+    deleteChat: (state, action: PayloadAction<string>) => {
+      const chatId = action.payload;
+      state.chats = state.chats.filter(c => c.id !== chatId);
+      
+      // If we deleted the current chat, switch to the first available chat
+      if (state.currentChatId === chatId) {
+        state.currentChatId = state.chats.length > 0 ? state.chats[0].id : null;
+      }
+    },
+    
+    addAttachment: (state, action: PayloadAction<{ file: File; type: 'image' | 'document'; preview?: string }>) => {
+      state.attachedFiles.push(action.payload);
+    },
+    
+    removeAttachment: (state, action: PayloadAction<number>) => {
+      state.attachedFiles.splice(action.payload, 1);
+    },
+    
+    clearAttachments: (state) => {
+      state.attachedFiles = [];
+    },
+  },
+});
+
+export const {
+  createNewChat,
+  switchChat,
+  addMessage,
+  updateChatTitle,
+  deleteChat,
+  addAttachment,
+  removeAttachment,
+  clearAttachments,
+} = chatSlice.actions;
+
+// Selectors
+export const selectCurrentChat = (state: { chat: ChatState }) => {
+  const { chats, currentChatId } = state.chat;
+  if (!currentChatId) return null;
+  return chats.find(chat => chat.id === currentChatId) || null;
+};
+
+export const selectAllChats = (state: { chat: ChatState }) => state.chat.chats;
+export const selectCurrentChatId = (state: { chat: ChatState }) => state.chat.currentChatId;
+export const selectAttachedFiles = (state: { chat: ChatState }) => state.chat.attachedFiles;
+
+export default chatSlice.reducer;
