@@ -52,6 +52,9 @@ export interface Chat {
   messages: Message[];
   createdAt: Date;
   updatedAt: Date;
+  backendConversationId?: string;
+  backendSessionId?: string;
+  backendStage?: string;
 }
 
 interface ChatState {
@@ -88,6 +91,9 @@ const chatSlice = createSlice({
         messages: [],
         createdAt: new Date(),
         updatedAt: new Date(),
+        backendConversationId: undefined,
+        backendSessionId: undefined,
+        backendStage: undefined,
       };
       state.chats.unshift(newChat);
       state.currentChatId = newChat.id;
@@ -110,6 +116,9 @@ const chatSlice = createSlice({
           messages: [message],
           createdAt: new Date(),
           updatedAt: new Date(),
+          backendConversationId: undefined,
+          backendSessionId: undefined,
+          backendStage: undefined,
         };
         state.chats.unshift(newChat);
         state.currentChatId = newChat.id;
@@ -145,6 +154,37 @@ const chatSlice = createSlice({
         state.currentChatId = state.chats.length > 0 ? state.chats[0].id : null;
       }
     },
+
+    setChatBackendContext: (
+      state,
+      action: PayloadAction<{
+        chatId: string;
+        conversationId?: string;
+        sessionId?: string;
+        stage?: string;
+      }>
+    ) => {
+      const { chatId, conversationId, sessionId, stage } = action.payload;
+      const chat = state.chats.find(c => c.id === chatId);
+      if (!chat) return;
+      if (conversationId) chat.backendConversationId = conversationId;
+      if (sessionId) chat.backendSessionId = sessionId;
+      if (stage) chat.backendStage = stage;
+      chat.updatedAt = new Date();
+    },
+
+    updateMessageContent: (
+      state,
+      action: PayloadAction<{ chatId: string; messageId: string; content: string }>
+    ) => {
+      const { chatId, messageId, content } = action.payload;
+      const chat = state.chats.find(c => c.id === chatId);
+      if (!chat) return;
+      const msg = chat.messages.find(m => m.id === messageId);
+      if (!msg) return;
+      msg.content = content;
+      chat.updatedAt = new Date();
+    },
     
     addAttachment: (state, action: PayloadAction<{ file: File; type: 'image' | 'document'; preview?: string }>) => {
       state.attachedFiles.push(action.payload);
@@ -164,6 +204,8 @@ export const {
   createNewChat,
   switchChat,
   addMessage,
+  setChatBackendContext,
+  updateMessageContent,
   updateChatTitle,
   deleteChat,
   addAttachment,

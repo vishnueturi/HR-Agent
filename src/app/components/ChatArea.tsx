@@ -1,12 +1,21 @@
-import { Pencil, Mic, ArrowUp, ArrowDown, RotateCw, ThumbsUp, ThumbsDown, Copy, Download, Play, Pause, FileText, Image as ImageIcon, Paperclip, MoreHorizontal } from 'lucide-react';
+import { Pencil, Mic, ArrowUp, ArrowDown, RotateCw, ThumbsUp, ThumbsDown, Copy, Download, Play, FileText, Image as ImageIcon, Paperclip, MoreHorizontal } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectCurrentChat, selectAttachedFiles, addMessage, clearAttachments, addAttachment, removeAttachment } from '../store/chatSlice';
+import { selectCurrentChat, selectAttachedFiles, addMessage, clearAttachments, addAttachment, removeAttachment, setChatBackendContext, updateMessageContent } from '../store/chatSlice';
 import { selectUserInitials } from '../store/userSlice';
-import type { Message, CodeBlock, ChartData, FileAttachment, ImageData, AudioData } from '../store/chatSlice';
+import type { Message } from '../store/chatSlice';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { store } from '../store';
+import { startConversation, continueConversation } from '../backend/basicchatApi';
+import {
+  connectSignalR,
+  joinConversation,
+  joinUserIdGroup,
+  disconnectSignalR,
+} from '../backend/signalRService';
+import { getHrmsAccessToken } from '../backend/config';
 
 function LoadingDots() {
   return (
@@ -64,6 +73,14 @@ export function ChatArea() {
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  /**
+   * True while SignalR stream chunks are actively arriving.
+   * Kept separate from isLoading so the send button stays disabled until the
+   * complete response has been streamed, even after the HTTP call returns.
+   */
+  const [isStreaming, setIsStreaming] = useState(false);
+  const activeChatIdRef = useRef<string | null>(null);
+  const activeSessionIdRef = useRef<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachButtonRef = useRef<HTMLButtonElement>(null);
@@ -72,6 +89,157 @@ export function ChatArea() {
   const [audioLevels, setAudioLevels] = useState<number[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isMultiline, setIsMultiline] = useState(false);
+  const pendingStreamMessageIdRef = useRef<string | null>(null);
+  const pendingStreamHasChunksRef = useRef<boolean>(false);
+  /** Accumulate all StreamChat(chunk) for the current response; then bind full content to one message (backend does not send in one go). */
+  const streamedContentRef = useRef<string>('');
+
+  // RAF handle — batches rapid chunk dispatches into at most one Redux update per animation frame
+  const rafRef = useRef<number | null>(null);
+  // Fires 2 s after the last chunk arrives — signals that the stream has ended
+  const streamEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Fallback: if no chunks ever arrive within 10 s of the HTTP response, unblock the input
+  const noStreamFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    activeChatIdRef.current = currentChat?.id ?? null;
+    activeSessionIdRef.current = currentChat?.backendSessionId ?? null;
+  }, [currentChat?.id, currentChat?.backendSessionId]);
+
+  // Effect 1: Establish a single persistent SignalR connection for the lifetime of this component.
+  // IMPORTANT: Do NOT add backendSessionId to the dependency array.
+  // Adding it would cause React to run cleanup (disconnectSignalR) every time a new session is
+  // assigned from the HTTP response — killing the connection exactly while the backend is streaming
+  // chunks, resulting in partial/truncated responses ("It", "This", etc.).
+  useEffect(() => {
+    if (!getHrmsAccessToken()) return;
+
+    let mounted = true;
+
+    /** Flush accumulated stream content to Redux — called via RAF to batch rapid chunks. */
+    const flushChunkToRedux = () => {
+      rafRef.current = null;
+      const chatId = activeChatIdRef.current;
+      const messageId = pendingStreamMessageIdRef.current;
+      if (chatId && messageId) {
+        dispatch(updateMessageContent({ chatId, messageId, content: streamedContentRef.current }));
+      }
+    };
+
+    /** Mark the stream as finished, re-enable input, and do a final Redux flush. */
+    const finalizeStream = () => {
+      streamEndTimerRef.current = null;
+      // Cancel any pending RAF — we'll do the final flush ourselves
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      const chatId = activeChatIdRef.current;
+      const messageId = pendingStreamMessageIdRef.current;
+      if (chatId && messageId) {
+        dispatch(updateMessageContent({ chatId, messageId, content: streamedContentRef.current }));
+      }
+      pendingStreamMessageIdRef.current = null;
+      pendingStreamHasChunksRef.current = false;
+      setIsStreaming(false);
+      setIsLoading(false);
+    };
+
+    connectSignalR({
+      onStreamChat: (chunk: string) => {
+        if (!mounted) return;
+        const chatId = activeChatIdRef.current;
+        if (!chatId) return;
+
+        const chunkText = chunk === null || chunk === undefined ? '' : String(chunk);
+
+        // First chunk of a new response — create the placeholder bubble
+        if (!pendingStreamMessageIdRef.current) {
+          const messageId = `stream-${chatId}-${Date.now()}`;
+          pendingStreamMessageIdRef.current = messageId;
+          pendingStreamHasChunksRef.current = false;
+          streamedContentRef.current = '';
+          dispatch(addMessage({ id: messageId, type: 'assistant', content: '', timestamp: new Date() }));
+          setIsStreaming(true);
+          // Cancel the no-stream fallback — chunks are arriving
+          if (noStreamFallbackRef.current !== null) {
+            clearTimeout(noStreamFallbackRef.current);
+            noStreamFallbackRef.current = null;
+          }
+        }
+
+        streamedContentRef.current += chunkText;
+        pendingStreamHasChunksRef.current = true;
+
+        // Throttle Redux dispatches with RAF — at most one update per animation frame
+        // instead of one per chunk. This prevents hundreds of dispatches/second that
+        // cause the "message channel closed" browser error and excessive re-renders.
+        if (rafRef.current === null) {
+          rafRef.current = requestAnimationFrame(flushChunkToRedux);
+        }
+
+        // Reset the stream-end timer: if 2 s pass with no new chunks, the stream is done.
+        if (streamEndTimerRef.current !== null) {
+          clearTimeout(streamEndTimerRef.current);
+        }
+        streamEndTimerRef.current = setTimeout(finalizeStream, 2000);
+      },
+      onCardMessage: (payload) => {
+        if (!mounted) return;
+        const chatId = activeChatIdRef.current;
+        if (!chatId || !payload.content?.trim()) return;
+        const pendingMessageId = pendingStreamMessageIdRef.current;
+        if (pendingMessageId && !pendingStreamHasChunksRef.current) {
+          dispatch(updateMessageContent({ chatId, messageId: pendingMessageId, content: payload.content }));
+        } else {
+          dispatch(addMessage({ id: `srv-${Date.now()}`, type: 'assistant', content: payload.content, timestamp: new Date() }));
+        }
+        pendingStreamMessageIdRef.current = null;
+        pendingStreamHasChunksRef.current = false;
+        streamedContentRef.current = '';
+        if (payload.conversationId) {
+          dispatch(setChatBackendContext({ chatId, conversationId: payload.conversationId }));
+        }
+        setIsStreaming(false);
+        setIsLoading(false);
+      },
+    })
+      .then(async () => {
+        if (!mounted) return;
+        try {
+          // Join ownerId group — backend sends StreamChat to this group (ChatHub.OnConnectedAsync).
+          await joinUserIdGroup();
+          // If we already have a session (e.g. component re-mounted), rejoin it too.
+          const sessionId = activeSessionIdRef.current;
+          if (sessionId) await joinConversation(sessionId);
+        } catch (err) {
+          console.error('[SignalR] Failed to join group/conversation:', err);
+        }
+      })
+      .catch((err) => {
+        console.error('[SignalR] Connection failed:', err);
+      });
+
+    return () => {
+      mounted = false;
+      // Clean up all timers/RAF to avoid state updates on unmounted component
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      if (streamEndTimerRef.current !== null) clearTimeout(streamEndTimerRef.current);
+      if (noStreamFallbackRef.current !== null) clearTimeout(noStreamFallbackRef.current);
+      disconnectSignalR();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]); // Intentionally omit backendSessionId — see comment above.
+
+  // Effect 2: When a new session ID is assigned (after first HTTP response), join its SignalR group.
+  // This runs on top of the existing live connection — no disconnect/reconnect.
+  useEffect(() => {
+    const sessionId = currentChat?.backendSessionId;
+    if (!sessionId) return;
+    joinConversation(sessionId).catch((err) =>
+      console.warn('[SignalR] Failed to join session group:', err)
+    );
+  }, [currentChat?.backendSessionId]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -88,32 +256,126 @@ export function ChatArea() {
     }
   }, [inputValue]);
 
-  const handleSend = () => {
-    if (inputValue.trim() || attachedFiles.length > 0) {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        type: 'user',
-        content: inputValue,
-        timestamp: new Date(),
-        attachments: attachedFiles.length > 0 ? [...attachedFiles] : undefined
-      };
-      dispatch(addMessage(newMessage));
-      setInputValue('');
-      dispatch(clearAttachments());
-      
-      // Simulate assistant response
-      setIsLoading(true);
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: 'This is a simulated response. In a real application, this would connect to an AI service.',
-          timestamp: new Date()
-        };
-        dispatch(addMessage(assistantMessage));
-        setIsLoading(false);
-      }, 1000);
+  const handleSend = async () => {
+    if (!inputValue.trim() && attachedFiles.length === 0) return;
+    if (isLoading || isStreaming) return;
+
+    const userText = inputValue;
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: userText,
+      timestamp: new Date(),
+      attachments: attachedFiles.length > 0 ? [...attachedFiles] : undefined,
+    };
+
+    dispatch(addMessage(newMessage));
+    setInputValue('');
+    dispatch(clearAttachments());
+
+    setIsLoading(true);
+    setIsStreaming(false);
+
+    // Clear any leftover timers from a previous send
+    if (streamEndTimerRef.current !== null) {
+      clearTimeout(streamEndTimerRef.current);
+      streamEndTimerRef.current = null;
     }
+    if (noStreamFallbackRef.current !== null) {
+      clearTimeout(noStreamFallbackRef.current);
+      noStreamFallbackRef.current = null;
+    }
+
+    // Create the placeholder bubble up front. The SignalR onStreamChat handler will
+    // fill it as chunks arrive. If no stream starts, the fallback timer fills it or shows the error.
+    const pendingMessageId = `stream-${Date.now()}`;
+    pendingStreamMessageIdRef.current = pendingMessageId;
+    pendingStreamHasChunksRef.current = false;
+    streamedContentRef.current = '';
+    dispatch(addMessage({
+      id: pendingMessageId,
+      type: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    }));
+
+    try {
+      // Redux state update is synchronous; we can read chat id/context right after dispatch.
+      const state = store.getState();
+      const chatId = state.chat.currentChatId;
+      const chat = chatId ? state.chat.chats.find(c => c.id === chatId) : null;
+
+      const hasConversation = Boolean(chat?.backendConversationId);
+      const resp = hasConversation
+        ? await continueConversation({
+            text: userText,
+            conversationId: chat?.backendConversationId,
+            sessionId: chat?.backendSessionId,
+          })
+        : await startConversation({
+            message: userText,
+          });
+
+      const anyResp = resp as any;
+      const conversationIdFromResp: string | undefined =
+        resp.conversationId ?? anyResp.ConversationId;
+      const sessionIdFromResp: string | undefined =
+        resp.sessionId ?? anyResp.SessionId;
+      const stageFromResp: string | undefined =
+        resp.stage ?? anyResp.Stage;
+
+      if (chatId) {
+        dispatch(setChatBackendContext({
+          chatId,
+          conversationId: conversationIdFromResp,
+          sessionId: sessionIdFromResp,
+          stage: stageFromResp,
+        }));
+      }
+
+      const assistantTextRaw = resp.text ?? anyResp.Text;
+      const assistantText = (assistantTextRaw ?? '').toString();
+      if (chatId && assistantText && !pendingStreamHasChunksRef.current) {
+        dispatch(updateMessageContent({
+          chatId,
+          messageId: pendingMessageId,
+          content: assistantText,
+        }));
+      }
+
+      // HTTP returned — start a fallback timer.
+      // If no SignalR chunks arrive within 10 s of the HTTP response, assume there is no
+      // stream for this turn and unblock the input.
+      if (!pendingStreamHasChunksRef.current) {
+        noStreamFallbackRef.current = setTimeout(() => {
+          noStreamFallbackRef.current = null;
+          if (!pendingStreamHasChunksRef.current) {
+            // No chunks received — HTTP text (if any) is already in the bubble; we're done.
+            pendingStreamMessageIdRef.current = null;
+            setIsLoading(false);
+          }
+        }, 10_000);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      const state = store.getState();
+      const chatId = state.chat.currentChatId;
+      if (chatId) {
+        dispatch(updateMessageContent({
+          chatId,
+          messageId: pendingMessageId,
+          content: `Backend error: ${msg}`,
+        }));
+      }
+      // On HTTP error there will be no stream — unblock immediately
+      pendingStreamMessageIdRef.current = null;
+      setIsLoading(false);
+      setIsStreaming(false);
+    }
+    // NOTE: No finally block — isLoading is released by either:
+    //   a) The stream-end timer (2 s after last chunk) — normal streaming flow
+    //   b) The no-stream fallback timer (10 s, if no chunks arrive) — non-streaming responses
+    //   c) The catch block above — on HTTP error
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -184,13 +446,6 @@ export function ChatArea() {
     }
   };
 
-  const handleAttachClick = () => {
-    setShowAttachMenu(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
   const handleAttachMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowAttachMenu(!showAttachMenu);
@@ -206,7 +461,7 @@ export function ChatArea() {
       Array.from(files).forEach(file => {
         const isImage = file.type.startsWith('image/');
         const preview = isImage ? URL.createObjectURL(file) : undefined;
-        dispatch(addAttachment(file, isImage ? 'image' : 'document', preview));
+        dispatch(addAttachment({ file, type: isImage ? 'image' : 'document', preview }));
       });
     }
     // Reset file input
@@ -219,7 +474,7 @@ export function ChatArea() {
     Array.from(files).forEach(file => {
       const isImage = file.type.startsWith('image/');
       const preview = isImage ? URL.createObjectURL(file) : undefined;
-      dispatch(addAttachment(file, isImage ? 'image' : 'document', preview));
+      dispatch(addAttachment({ file, type: isImage ? 'image' : 'document', preview }));
     });
   };
 
@@ -346,7 +601,10 @@ export function ChatArea() {
             </div>
           )}
           
-          {messages.map((message, msgIndex) => (
+          {messages.map((message, msgIndex) => {
+            const isLastMessage = msgIndex === messages.length - 1;
+            const isStreamingPlaceholder = isLastMessage && message.type === 'assistant' && !message.content?.trim() && (isLoading || isStreaming);
+            return (
             <div key={message.id} className="mb-8">
               {message.type === 'user' ? (
                 // User message
@@ -410,7 +668,12 @@ export function ChatArea() {
                     </svg>
                   </div>
                   <div className="flex-1 pt-1">
-                    {/* Message content with Markdown support */}
+                    {/* Message content with Markdown support; show typing indicator when this is the streaming placeholder */}
+                    {isStreamingPlaceholder ? (
+                      <div className="flex items-center h-8">
+                        <LoadingDots />
+                      </div>
+                    ) : (
                     <div className="markdown-content">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
@@ -620,6 +883,7 @@ export function ChatArea() {
                         {message.content}
                       </ReactMarkdown>
                     </div>
+                    )}
 
                     {/* Code blocks */}
                     {message.codeBlocks && message.codeBlocks.map((block, blockIdx) => (
@@ -893,8 +1157,10 @@ export function ChatArea() {
                 </div>
               )}
             </div>
-          ))}
-          {isLoading && (
+          );
+          })}
+          {/* Only show separate loading row when we don't already have the streaming placeholder (single response bubble) */}
+          {(isLoading || isStreaming) && !(messages.length > 0 && messages[messages.length - 1].type === 'assistant' && !messages[messages.length - 1].content?.trim()) && (
             <div className="mb-8">
               <div className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent)' }}>
@@ -1134,9 +1400,10 @@ export function ChatArea() {
               {inputValue.trim() || attachedFiles.length > 0 ? (
                 <button 
                   onClick={handleSend}
-                  className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-opacity hover:opacity-90"
+                  disabled={isLoading || isStreaming}
+                  className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ backgroundColor: 'var(--foreground)', color: 'var(--background)' }}
-                  title="Send message"
+                  title={isLoading || isStreaming ? 'Waiting for response…' : 'Send message'}
                 >
                   <ArrowUp size={18} />
                 </button>
