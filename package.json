@@ -1,5 +1,6 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "hr-agent-react",
+  "description": "HR Agent chat UI. Backend: HRAgent (Agent Hub). Reference: Recco.App.",
   "private": true,
   "version": "0.0.1",
   "type": "module",

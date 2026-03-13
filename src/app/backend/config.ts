@@ -1,3 +1,7 @@
+/**
+ * App config — env-based. Backend: HRAgent (D:\2.0\Agent Hub\HRAgent).
+ * Chat API styles align with Recco.App (Basicchat vs AssistingAgent).
+ */
 function trimTrailingSlash(url: string) {
   return url.replace(/\/+$/, '');
 }
@@ -10,6 +14,20 @@ export function getApiBaseUrl(): string {
 export function getHrmsTokenKey(): string {
   const env = import.meta.env.VITE_HRMS_TOKEN_KEY;
   return env && env.trim().length > 0 ? env.trim() : 'accessToken';
+}
+
+/** Chat API style: Basicchat (HRAgent) or AssistingAgent (Recco.App style). */
+export type ChatApiStyle = 'Basicchat' | 'AssistingAgent';
+
+export function getChatApiStyle(): ChatApiStyle {
+  const v = import.meta.env.VITE_CHAT_API;
+  const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
+  return s === 'assistingagent' ? 'AssistingAgent' : 'Basicchat';
+}
+
+export function getApiJsonPascalCase(): boolean {
+  const v = import.meta.env.VITE_API_JSON_PASCAL_CASE;
+  return v === 'true' || v === '1';
 }
 
 export function getHrmsAccessToken(): string | null {

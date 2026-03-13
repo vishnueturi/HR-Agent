@@ -23,7 +23,18 @@ const STREAM_EVENT_NAME = (() => {
   return (typeof env === 'string' && env.trim()) ? env.trim() : 'StreamChat';
 })();
 
-export type StreamChatHandler = (chunk: string) => void;
+export interface StreamChatPayload {
+  content: string;
+  conversationId?: string;
+  messageId?: string;
+  chunkId?: string;
+  isFinalChunk?: boolean;
+  serializedContent?: string;
+  type?: string;
+  role?: string;
+}
+
+export type StreamChatHandler = (payload: StreamChatPayload) => void;
 
 export interface CardMessagePayload {
   content: string;
@@ -59,57 +70,134 @@ function asString(value: unknown): string {
   return String(value);
 }
 
+function isMetadataOnlyChunk(value: string): boolean {
+  const text = value.trim();
+  if (!text) return false;
+
+  // Backend sometimes emits message identifiers as standalone trailing chunks,
+  // e.g. "m-14", which should not be rendered into the assistant message body.
+  if (/^m-\d+$/i.test(text)) return true;
+
+  return false;
+}
+
 /**
  * Extract the displayable text chunk from StreamChat args.
  * Backend (PushNotificationService) can send 1 arg (chunk) or multi-arg payloads from
  * orchestrator, e.g. [conversationId, id, id, text, isFinal, serializedContent, type, role].
  * Using only args[0] would show conversationId/messageId (hex) instead of text.
  */
-function getChunkFromStreamChatArgs(args: unknown[]): string {
-  if (!args || args.length === 0) return '';
+function asBoolean(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const text = value.trim().toLowerCase();
+    if (text === 'true') return true;
+    if (text === 'false') return false;
+  }
+  return undefined;
+}
+
+interface ParsedStreamResult {
+  stream?: StreamChatPayload;
+  card?: CardMessagePayload;
+}
+
+function parseStreamChatArgs(args: unknown[]): ParsedStreamResult {
+  if (!args || args.length === 0) return {};
 
   // Single arg: chunk only (current backend logs show "StreamChat. Hello" etc.)
   if (args.length === 1) {
-    return asString(args[0]);
+    const text = asString(args[0]);
+    const content = isMetadataOnlyChunk(text) ? '' : text;
+    return { stream: { content } };
   }
 
   // Full payload shape: [conversationId, id, id, text, true, serializedContent, type, role]
   if (args.length >= 8) {
+    const conversationId = asString(args[0]) || undefined;
+    const messageId = asString(args[1]) || undefined;
+    const chunkId = asString(args[2]) || undefined;
+    const text = asString(args[3]);
+    const isFinalChunk = asBoolean(args[4]);
+    const serializedContent = asString(args[5]) || undefined;
     const messageType = asString(args[6]);
-    if (CARD_TYPES.has(messageType)) return '';
-    return asString(args[3]);
+    const role = asString(args[7]) || undefined;
+    const content = isMetadataOnlyChunk(text) ? '' : text;
+    if (CARD_TYPES.has(messageType)) {
+      return {
+        card: {
+          content,
+          type: messageType,
+          serializedContent: serializedContent ?? '',
+          messageId,
+          conversationId,
+        },
+      };
+    }
+    return {
+      stream: {
+        content,
+        conversationId,
+        messageId,
+        chunkId,
+        isFinalChunk,
+        serializedContent,
+        type: messageType || undefined,
+        role,
+      },
+    };
   }
 
   // 2 args: [conversationId, chunk]
   if (args.length === 2) {
-    return asString(args[1]);
+    const conversationId = asString(args[0]) || undefined;
+    const text = asString(args[1]);
+    const content = isMetadataOnlyChunk(text) ? '' : text;
+    return { stream: { content, conversationId } };
   }
 
   // 3 args: e.g. [conversationId, id, text]
   if (args.length === 3) {
-    return asString(args[2]) || asString(args[1]) || asString(args[0]);
+    const conversationId = asString(args[0]) || undefined;
+    const messageId = asString(args[1]) || undefined;
+    const text = asString(args[2]) || asString(args[1]) || asString(args[0]);
+    const content = isMetadataOnlyChunk(text) ? '' : text;
+    return { stream: { content, conversationId, messageId } };
   }
 
   // 4 or 5 args: text often at index 3 or 2
   if (args.length === 4 || args.length === 5) {
-    return asString(args[3]) || asString(args[2]) || asString(args[0]);
+    const conversationId = asString(args[0]) || undefined;
+    const messageId = asString(args[1]) || undefined;
+    const chunkId = asString(args[2]) || undefined;
+    const isFinalChunk = args.length === 5 ? asBoolean(args[4]) : undefined;
+    const text = asString(args[3]) || asString(args[2]) || asString(args[0]);
+    const content = isMetadataOnlyChunk(text) ? '' : text;
+    return { stream: { content, conversationId, messageId, chunkId, isFinalChunk } };
   }
 
   // Fallback: text often at index 3 in multi-arg payloads
-  return asString(args[3]) || asString(args[0]);
+  const text = asString(args[3]) || asString(args[0]);
+  const content = isMetadataOnlyChunk(text) ? '' : text;
+  return { stream: { content } };
 }
 
 function setupStreamChatHandler(
   conn: signalR.HubConnection,
   onStreamChat: StreamChatHandler,
-  _onCardMessage?: CardMessageHandler
+  onCardMessage?: CardMessageHandler
 ): void {
   conn.off(STREAM_EVENT_NAME);
   conn.off('StreamChat');
   const handleStreamChat = (...args: unknown[]) => {
-    const chunk = getChunkFromStreamChatArgs(args);
+    const parsed = parseStreamChatArgs(args);
     try {
-      onStreamChat(chunk);
+      if (parsed.card && onCardMessage) {
+        onCardMessage(parsed.card);
+      }
+      if (parsed.stream) {
+        onStreamChat(parsed.stream);
+      }
     } catch (error) {
       console.error('[SignalR] onStreamChat error:', error);
     }
@@ -295,7 +383,10 @@ export function getUserIdFromToken(): string | null {
     const token = raw.trim().startsWith('Bearer ') ? raw.trim().slice(7).trim() : raw.trim();
     const parts = token.split('.');
     if (parts.length < 2) return null;
-    const payload = JSON.parse(atob(parts[1])) as Record<string, unknown>;
+    // JWT uses base64url; normalize before decoding.
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded)) as Record<string, unknown>;
     return (
       (payload.extension_userId as string) ??
       (payload.extension_userid as string) ??

@@ -1,3 +1,7 @@
+**Reference:** Frontend patterns from Recco.App (`D:\9.0\Recco.App`). Backend code: **HRAgent** at `D:\2.0\Agent Hub\HRAgent`.
+
+---
+
 1.	Detailed API reference (what to call, payload, expected response)
 •	Base dev URLs
 •	HTTP: http://localhost:5257

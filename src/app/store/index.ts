@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import themeReducer from './themeSlice';
 import userReducer from './userSlice';
 import chatReducer from './chatSlice';
+import signalRReducer from './signalRSlice';
 
 export const store = configureStore({
   reducer: {
     theme: themeReducer,
     user: userReducer,
     chat: chatReducer,
+    signalR: signalRReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
