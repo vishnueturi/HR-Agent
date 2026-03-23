@@ -1,4 +1,4 @@
-import { Share2, MoreHorizontal, ChevronDown, Pencil, Archive, Trash2 } from 'lucide-react';
+import { Share2, MoreHorizontal, Pencil, Archive, Trash2, ExternalLink } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectCurrentChat, selectCurrentChatId, deleteChat, updateChatTitle } from '../store/chatSlice';
@@ -6,6 +6,11 @@ import { selectCurrentChat, selectCurrentChatId, deleteChat, updateChatTitle } f
 interface ChatHeaderProps {
   onToggleSidebar: () => void;
   sidebarOpen: boolean;
+}
+
+/** True when HR Agent runs inside the HR portal widget iframe (not standalone). */
+function isEmbeddedInHrPortal(): boolean {
+  return typeof window !== 'undefined' && window.self !== window.top;
 }
 
 export function ChatHeader({ onToggleSidebar, sidebarOpen }: ChatHeaderProps) {
@@ -89,9 +94,13 @@ export function ChatHeader({ onToggleSidebar, sidebarOpen }: ChatHeaderProps) {
     setIsMenuOpen(false);
   };
 
+  const handleOpenFullPageInNewTab = () => {
+    window.open(window.location.href, '_blank', 'noopener,noreferrer');
+  };
+
   return (
-    <header className="px-4 py-3 flex items-center justify-between" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-      <div className="flex items-center gap-3">
+    <header className="flex-shrink-0 px-4 py-3 flex items-center justify-between gap-2 border-b border-border/50 text-foreground" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         {!sidebarOpen && (
           <button 
             onClick={onToggleSidebar}
@@ -127,14 +136,25 @@ export function ChatHeader({ onToggleSidebar, sidebarOpen }: ChatHeaderProps) {
           ) : (
             <>
               <span style={{ fontSize: 'var(--text-base)', fontFamily: 'var(--font-source-sans-pro)' }}>
-                {currentChat ? currentChat.title : 'Screen Shot to Code 5.2'}
+                {currentChat ? currentChat.title : 'OnBlick Agent'}
               </span>
               
             </>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      {isEmbeddedInHrPortal() && (
+        <button
+          type="button"
+          onClick={handleOpenFullPageInNewTab}
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted/30 transition-colors"
+          title="Open HR Agent in a new tab (full page)"
+          aria-label="Open HR Agent in a new tab"
+        >
+          <ExternalLink size={18} className="text-foreground" />
+        </button>
+      )}
+      <div className="flex items-center gap-2 shrink-0">
         <button className="px-3 py-1.5 rounded hover:bg-muted/20 transition-colors flex items-center gap-2">
           <Share2 size={16} />
           <span style={{ fontSize: 'var(--text-base)', fontFamily: 'var(--font-source-sans-pro)' }}>Share</span>

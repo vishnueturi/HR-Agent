@@ -16,6 +16,16 @@ export function getHrmsTokenKey(): string {
   return env && env.trim().length > 0 ? env.trim() : 'accessToken';
 }
 
+function getKnownHrmsTokenKeys(): string[] {
+  const configuredKey = getHrmsTokenKey();
+  return Array.from(new Set([
+    configuredKey,
+    'access_token',
+    'accessToken',
+    'token',
+  ].filter(Boolean)));
+}
+
 /** Chat API style: Basicchat (HRAgent) or AssistingAgent (Recco.App style). */
 export type ChatApiStyle = 'Basicchat' | 'AssistingAgent';
 
@@ -37,27 +47,65 @@ export function getHrmsAccessToken(): string | null {
     return staticToken.trim();
   }
 
-  const raw = localStorage.getItem(getHrmsTokenKey());
-  if (!raw) return null;
+  for (const key of getKnownHrmsTokenKeys()) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
 
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
 
-  // Some apps store token as JSON (string or object).
-  if (trimmed.startsWith('{') || trimmed.startsWith('"')) {
-    try {
-      const parsed = JSON.parse(trimmed) as unknown;
-      if (typeof parsed === 'string') return parsed;
-      if (parsed && typeof parsed === 'object') {
-        const obj = parsed as Record<string, unknown>;
-        const candidate = obj.accessToken ?? obj.token ?? obj.jwt;
-        if (typeof candidate === 'string') return candidate;
+    // Some apps store token as JSON (string or object).
+    if (trimmed.startsWith('{') || trimmed.startsWith('"')) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown;
+        if (typeof parsed === 'string') return parsed;
+        if (parsed && typeof parsed === 'object') {
+          const obj = parsed as Record<string, unknown>;
+          const candidate = obj.accessToken ?? obj.access_token ?? obj.token ?? obj.jwt;
+          if (typeof candidate === 'string' && candidate.trim()) return candidate;
+        }
+      } catch {
+        // Fall through to raw string
       }
-    } catch {
-      // Fall through to raw string
     }
+
+    return trimmed;
   }
 
-  return trimmed;
+  return null;
+}
+
+export function persistHrmsAccessToken(token: string): void {
+  const trimmed = token.trim();
+  if (!trimmed) return;
+
+  getKnownHrmsTokenKeys().forEach((key) => {
+    localStorage.setItem(key, trimmed);
+  });
+}
+
+export function bootstrapHrmsAccessTokenFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hash = window.location.hash.startsWith('#')
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+  const hashParams = new URLSearchParams(hash);
+
+  const token = searchParams.get('access_token')
+    ?? hashParams.get('access_token')
+    ?? searchParams.get('token')
+    ?? hashParams.get('token');
+
+  if (!token || !token.trim()) return null;
+
+  persistHrmsAccessToken(token);
+
+  // Clean the iframe URL after we persist the token so it is not left in the address bar.
+  const cleanedUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  window.history.replaceState(null, document.title, cleanedUrl);
+
+  return token.trim();
 }
 

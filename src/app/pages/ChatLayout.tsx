@@ -3,8 +3,12 @@ import { Sidebar } from '../components/Sidebar';
 import { ChatHeader } from '../components/ChatHeader';
 import { ChatArea } from '../components/ChatArea';
 
+function isEmbeddedInHrPortal(): boolean {
+  return typeof window !== 'undefined' && window.self !== window.top;
+}
+
 export default function ChatLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => !isEmbeddedInHrPortal());
 
   return (
     <div className="h-screen flex overflow-hidden bg-background text-foreground">
