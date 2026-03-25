@@ -13,6 +13,8 @@ interface ImportMetaEnv {
   readonly VITE_CHAT_API?: string;
   /** If "true", send request bodies with PascalCase (Message, SessionId, etc.) for .NET. */
   readonly VITE_API_JSON_PASCAL_CASE?: string;
+  /** Base URL for GET /Conversation (history list). Default: https://hragents.azurewebsites.net */
+  readonly VITE_CONVERSATION_HISTORY_BASE_URL?: string;
 }
 
 interface ImportMeta {

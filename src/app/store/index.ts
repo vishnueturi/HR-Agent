@@ -15,7 +15,12 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         // Ignore these action types
-        ignoredActions: ['chat/addMessage', 'chat/addAttachment'],
+        ignoredActions: [
+          'chat/addMessage',
+          'chat/addAttachment',
+          'chat/upsertChatsFromHistory',
+          'chat/replaceChatMessages',
+        ],
         // Ignore these field paths in all actions
         ignoredActionPaths: ['payload.timestamp', 'payload.createdAt', 'payload.updatedAt', 'payload.file'],
         // Ignore these paths in the state

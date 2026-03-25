@@ -3,7 +3,25 @@ import { useState, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { toggleTheme } from '../store/themeSlice';
 import { selectUserInitials } from '../store/userSlice';
-import { createNewChat, switchChat, deleteChat, updateChatTitle, selectAllChats, selectCurrentChatId } from '../store/chatSlice';
+import {
+  createNewChat,
+  switchChat,
+  deleteChat,
+  updateChatTitle,
+  selectAllChats,
+  selectCurrentChatId,
+  upsertChatsFromHistory,
+  replaceChatMessages,
+} from '../store/chatSlice';
+import { store } from '../store';
+import { getHrmsAccessToken } from '../backend/config';
+import {
+  fetchConversationHistoryPage,
+  buildChatsFromHistoryRows,
+  fetchConversationThread,
+  rowsToMessages,
+  titleFromHistoryRows,
+} from '../backend/conversationHistoryApi';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -22,8 +40,44 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const [openMenuChatId, setOpenMenuChatId] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [profileImageError, setProfileImageError] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setProfileImageError(false);
+  }, [user.profilePicUrl]);
+
+  useEffect(() => {
+    if (!getHrmsAccessToken()) return;
+
+    let cancelled = false;
+    setHistoryLoading(true);
+
+    void (async () => {
+      try {
+        const page = await fetchConversationHistoryPage(1, 10);
+        if (cancelled) return;
+        const chats = buildChatsFromHistoryRows(page.data ?? []);
+        if (chats.length) {
+          dispatch(upsertChatsFromHistory(chats));
+          const state = store.getState().chat;
+          if (!state.currentChatId) {
+            dispatch(switchChat(chats[0].id));
+          }
+        }
+      } catch {
+        // Keep sidebar empty if history is unavailable or unauthorized.
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -54,9 +108,28 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   };
 
   const handleChatClick = (chatId: string) => {
-    if (editingChatId !== chatId) {
-      dispatch(switchChat(chatId));
-    }
+    if (editingChatId === chatId) return;
+    dispatch(switchChat(chatId));
+
+    const chat = store.getState().chat.chats.find((c) => c.id === chatId);
+    if (!chat?.backendConversationId) return;
+
+    void (async () => {
+      try {
+        const rows = await fetchConversationThread(chat.backendConversationId);
+        if (rows.length === 0) return;
+        const messages = rowsToMessages(rows);
+        dispatch(
+          replaceChatMessages({
+            chatId,
+            messages,
+            title: titleFromHistoryRows(rows),
+          })
+        );
+      } catch {
+        // Keep messages already shown from the list response.
+      }
+    })();
   };
 
   const handleDeleteChat = (e: React.MouseEvent, chatId: string) => {
@@ -188,7 +261,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
         {/* Recent Chats Section */}
         <div className="mt-4">
-          <div className="px-3 py-2">
+          <div className="px-3 py-2 flex items-center justify-between gap-2">
             <span style={{ 
               fontSize: 'var(--text-xs)', 
               fontFamily: 'var(--font-source-sans-pro)',
@@ -200,6 +273,18 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             }}>
               Recent Chats
             </span>
+            {historyLoading && (
+              <span
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  fontFamily: 'var(--font-source-sans-pro)',
+                  color: 'var(--sidebar-foreground)',
+                  opacity: 0.5,
+                }}
+              >
+                …
+              </span>
+            )}
           </div>
           {chats.length > 0 && chats.map((chat) => (
             <div key={chat.id} className="relative">
@@ -365,15 +450,24 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         </button>
 
         {/* User profile */}
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded hover:bg-muted/10 transition-colors">
-          <div 
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" 
-            style={{ backgroundColor: 'var(--primary)' }}
-          >
-            <span style={{ color: 'var(--primary-foreground)', fontSize: 'var(--text-base)', fontFamily: 'var(--font-source-sans-pro)', fontWeight: 'var(--font-weight-semibold)' }}>
-              {userInitials}
-            </span>
-          </div>
+        <button type="button" className="w-full flex items-center gap-3 px-3 py-2.5 rounded hover:bg-muted/10 transition-colors">
+          {user.profilePicUrl && !profileImageError ? (
+            <img
+              src={user.profilePicUrl}
+              alt=""
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              onError={() => setProfileImageError(true)}
+            />
+          ) : (
+            <div 
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" 
+              style={{ backgroundColor: 'var(--primary)' }}
+            >
+              <span style={{ color: 'var(--primary-foreground)', fontSize: 'var(--text-base)', fontFamily: 'var(--font-source-sans-pro)', fontWeight: 'var(--font-weight-semibold)' }}>
+                {userInitials}
+              </span>
+            </div>
+          )}
           <div className="flex-1 text-left">
             <div style={{ fontSize: 'var(--text-base)', fontFamily: 'var(--font-source-sans-pro)', color: 'var(--sidebar-foreground)' }}>
               {user.firstName} {user.lastName}

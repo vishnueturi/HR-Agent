@@ -2,6 +2,7 @@ import { Share2, MoreHorizontal, Pencil, Archive, Trash2, ExternalLink } from 'l
 import { useState, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectCurrentChat, selectCurrentChatId, deleteChat, updateChatTitle } from '../store/chatSlice';
+import { getHrmsAccessToken } from '../backend/config';
 
 interface ChatHeaderProps {
   onToggleSidebar: () => void;
@@ -95,7 +96,16 @@ export function ChatHeader({ onToggleSidebar, sidebarOpen }: ChatHeaderProps) {
   };
 
   const handleOpenFullPageInNewTab = () => {
-    window.open(window.location.href, '_blank', 'noopener,noreferrer');
+    const url = new URL(window.location.href);
+    const token = getHrmsAccessToken();
+
+    if (token?.trim()) {
+      const tokenOnly = token.trim().replace(/^Bearer\s+/i, '');
+      url.searchParams.set('access_token', tokenOnly);
+      url.searchParams.delete('handoff');
+    }
+
+    window.open(url.toString(), '_blank', 'noopener,noreferrer');
   };
 
   return (

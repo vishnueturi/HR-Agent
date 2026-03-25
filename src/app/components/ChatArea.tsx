@@ -18,6 +18,7 @@ import {
   type StreamChatPayload,
 } from '../backend/signalRService';
 import { getHrmsAccessToken } from '../backend/config';
+import { tryParseJsonListCards, HrListDataCards, JsonArrayCards } from './hrListDataCards';
 
 function LoadingDots() {
   return (
@@ -770,6 +771,10 @@ export function ChatArea() {
           {messages.map((message, msgIndex) => {
             const isLastMessage = msgIndex === messages.length - 1;
             const isStreamingPlaceholder = isLastMessage && message.type === 'assistant' && !message.content?.trim() && (isLoading || isStreaming);
+            const jsonListParse =
+              message.type === 'assistant' && !isStreamingPlaceholder
+                ? tryParseJsonListCards(message.content)
+                : null;
             return (
             <div key={message.id} className="mb-8">
               {message.type === 'user' ? (
@@ -839,6 +844,10 @@ export function ChatArea() {
                       <div className="flex items-center h-8">
                         <LoadingDots />
                       </div>
+                    ) : jsonListParse?.variant === 'i9' ? (
+                      <HrListDataCards payload={jsonListParse.payload} />
+                    ) : jsonListParse?.variant === 'array' ? (
+                      <JsonArrayCards rows={jsonListParse.rows} />
                     ) : (
                     <div className="markdown-content">
                       <ReactMarkdown
@@ -1051,6 +1060,8 @@ export function ChatArea() {
                     </div>
                     )}
 
+                    {!jsonListParse && (
+                    <>
                     {/* Code blocks */}
                     {message.codeBlocks && message.codeBlocks.map((block, blockIdx) => (
                       <div key={blockIdx} className="my-4 rounded-lg overflow-hidden" style={{ 
@@ -1300,6 +1311,8 @@ export function ChatArea() {
                           </div>
                         </div>
                       </div>
+                    )}
+                    </>
                     )}
 
                     {/* Message actions - only show for last assistant message */}

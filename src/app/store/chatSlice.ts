@@ -85,6 +85,20 @@ const chatSlice = createSlice({
   initialState,
   reducers: {
     createNewChat: (state) => {
+      const existingEmpty = state.chats.find(
+        (c) => c.messages.length === 0 && c.title === 'New chat'
+      );
+      if (existingEmpty) {
+        state.chats = state.chats.filter((c) => {
+          if (c.messages.length === 0 && c.title === 'New chat') {
+            return c.id === existingEmpty.id;
+          }
+          return true;
+        });
+        state.currentChatId = existingEmpty.id;
+        return;
+      }
+
       const newChat: Chat = {
         id: Date.now().toString(),
         title: 'New chat',
@@ -197,6 +211,47 @@ const chatSlice = createSlice({
     clearAttachments: (state) => {
       state.attachedFiles = [];
     },
+
+    /** Merge or insert chats loaded from GET /Conversation (history). */
+    upsertChatsFromHistory: (state, action: PayloadAction<Chat[]>) => {
+      for (const incoming of action.payload) {
+        const dupeLocal = state.chats.find(
+          (c) => c.backendConversationId === incoming.id && c.id !== incoming.id
+        );
+        if (dupeLocal && state.currentChatId === dupeLocal.id) {
+          state.currentChatId = incoming.id;
+        }
+        state.chats = state.chats.filter(
+          (c) => !(c.backendConversationId === incoming.id && c.id !== incoming.id)
+        );
+
+        const idx = state.chats.findIndex((c) => c.id === incoming.id);
+        if (idx >= 0) {
+          const existing = state.chats[idx];
+          state.chats[idx] = {
+            ...existing,
+            ...incoming,
+            messages:
+              incoming.messages.length > 0 ? incoming.messages : existing.messages,
+          };
+        } else {
+          state.chats.push(incoming);
+        }
+      }
+      state.chats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    },
+
+    replaceChatMessages: (
+      state,
+      action: PayloadAction<{ chatId: string; messages: Message[]; title?: string }>
+    ) => {
+      const { chatId, messages, title } = action.payload;
+      const chat = state.chats.find((c) => c.id === chatId);
+      if (!chat) return;
+      chat.messages = messages;
+      if (title?.trim()) chat.title = title.trim();
+      chat.updatedAt = new Date();
+    },
   },
 });
 
@@ -211,6 +266,8 @@ export const {
   addAttachment,
   removeAttachment,
   clearAttachments,
+  upsertChatsFromHistory,
+  replaceChatMessages,
 } = chatSlice.actions;
 
 // Selectors

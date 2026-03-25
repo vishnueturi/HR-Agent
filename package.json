@@ -1,6 +1,6 @@
 {
-  "name": "hr-agent-react",
-  "description": "HR Agent chat UI. Backend: HRAgent (Agent Hub). Reference: Recco.App.",
+  "name": "hr-agent",
+  "description": "HR Agent chat UI.",
   "private": true,
   "version": "0.0.1",
   "type": "module",

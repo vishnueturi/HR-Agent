@@ -1,4 +1,10 @@
 **Add your own guidelines here**
+
+# Project guidelines
+
+* Do not run build, dev server, or production builds—ever.
+* Always design with mobile responsiveness in mind.
+
 <!--
 
 System Guidelines

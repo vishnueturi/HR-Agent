@@ -6,9 +6,19 @@ function trimTrailingSlash(url: string) {
   return url.replace(/\/+$/, '');
 }
 
+const TAB_HANDOFF_KEY_PREFIX = 'hr_agent_tab_handoff:';
+
 export function getApiBaseUrl(): string {
   const env = import.meta.env.VITE_API_BASE_URL;
   return trimTrailingSlash(env && env.trim().length > 0 ? env.trim() : 'http://localhost:5257');
+}
+
+/** GET /Conversation (paginated chat history). Defaults to Azure HR Agent host. */
+export function getConversationHistoryBaseUrl(): string {
+  const env = import.meta.env.VITE_CONVERSATION_HISTORY_BASE_URL;
+  return trimTrailingSlash(
+    env && env.trim().length > 0 ? env.trim() : 'https://hragents.azurewebsites.net'
+  );
 }
 
 export function getHrmsTokenKey(): string {
@@ -78,10 +88,54 @@ export function getHrmsAccessToken(): string | null {
 export function persistHrmsAccessToken(token: string): void {
   const trimmed = token.trim();
   if (!trimmed) return;
+  const canonicalKey = getHrmsTokenKey();
 
   getKnownHrmsTokenKeys().forEach((key) => {
-    localStorage.setItem(key, trimmed);
+    if (key === canonicalKey) {
+      localStorage.setItem(key, trimmed);
+      return;
+    }
+
+    localStorage.removeItem(key);
   });
+}
+
+interface HrmsTabHandoffPayload {
+  token: string;
+  createdAt: number;
+}
+
+function readHrmsAccessTokenFromTabHandoff(handoffId: string | null): string | null {
+  if (!handoffId || !handoffId.trim()) return null;
+
+  const storageKey = `${TAB_HANDOFF_KEY_PREFIX}${handoffId.trim()}`;
+  const raw = localStorage.getItem(storageKey);
+  if (!raw) return null;
+
+  localStorage.removeItem(storageKey);
+
+  try {
+    const parsed = JSON.parse(raw) as HrmsTabHandoffPayload;
+    const token = typeof parsed?.token === 'string' ? parsed.token.trim() : '';
+    return token || null;
+  } catch {
+    return null;
+  }
+}
+
+function cleanBootstrapParamsFromUrl(searchParams: URLSearchParams, hashParams: URLSearchParams): void {
+  const search = new URLSearchParams(searchParams);
+  const hash = new URLSearchParams(hashParams);
+
+  ['access_token', 'token', 'handoff'].forEach((key) => {
+    search.delete(key);
+    hash.delete(key);
+  });
+
+  const searchString = search.toString();
+  const hashString = hash.toString();
+  const cleanedUrl = `${window.location.origin}${window.location.pathname}${searchString ? `?${searchString}` : ''}${hashString ? `#${hashString}` : ''}`;
+  window.history.replaceState(null, document.title, cleanedUrl);
 }
 
 export function bootstrapHrmsAccessTokenFromUrl(): string | null {
@@ -96,15 +150,15 @@ export function bootstrapHrmsAccessTokenFromUrl(): string | null {
   const token = searchParams.get('access_token')
     ?? hashParams.get('access_token')
     ?? searchParams.get('token')
-    ?? hashParams.get('token');
+    ?? hashParams.get('token')
+    ?? readHrmsAccessTokenFromTabHandoff(searchParams.get('handoff') ?? hashParams.get('handoff'));
 
   if (!token || !token.trim()) return null;
 
   persistHrmsAccessToken(token);
 
-  // Clean the iframe URL after we persist the token so it is not left in the address bar.
-  const cleanedUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-  window.history.replaceState(null, document.title, cleanedUrl);
+  // Clean bootstrap params after we persist the token so it is not left in the address bar.
+  cleanBootstrapParamsFromUrl(searchParams, hashParams);
 
   return token.trim();
 }
