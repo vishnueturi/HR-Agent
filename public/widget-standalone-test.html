@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HR Agent widget — standalone test host</title>
+    <!--
+      LOCAL TESTING — read this if the iframe is blank or you see a MIME / main.tsx error:
+
+      • base-url MUST be the HR Agent SPA dev server (Vite), e.g. http://127.0.0.1:5173
+        Run: npm run dev  (note the port in the terminal — use that exact origin).
+
+      • Do NOT set base-url to Live Server (port 5500) or any static server that serves
+        the raw repo. index.html loads <script type="module" src="/src/main.tsx"> — only
+        Vite compiles .tsx and sends the correct JavaScript MIME type.
+
+      • This host page CAN be opened any way you like (Live Server, file, or Vite):
+        - Simplest: npm run dev → http://127.0.0.1:5173/widget-standalone-test.html
+          (one server for both the FAB and the iframe app; update base-url to match port)
+
+      • APIs: still whatever the embedded app has in .env (existing remote URLs).
+
+      Do not commit real tokens.
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #f1f5f9;
+      }
+      .widget-standalone-help {
+        position: fixed;
+        left: 12px;
+        bottom: 12px;
+        max-width: 26rem;
+        padding: 10px 12px;
+        font:
+          12px/1.45 system-ui,
+          sans-serif;
+        color: #334155;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        z-index: 0;
+      }
+      .widget-standalone-help strong {
+        display: block;
+        margin-bottom: 6px;
+        color: #0f172a;
+      }
+      .widget-standalone-help code {
+        font-size: 11px;
+        background: #f1f5f9;
+        padding: 2px 5px;
+        border-radius: 4px;
+      }
+    </style>
+    <script>
+      // Global flags for local development / manual testing (see src/env.d.ts).
+      window.__HR_AGENT_WIDGET_STANDALONE__ = true;
+      window.__HR_AGENT_LOCAL_TEST__ = true;
+    </script>
+  </head>
+  <body>
+    <aside class="widget-standalone-help" aria-label="Widget test help">
+      <strong>If the panel says “refused to connect”</strong>
+      The iframe loads the app from port <code>5173</code> (Vite). That process must be running:
+      <code>npm run dev</code> in this repo. Then open
+      <code>http://127.0.0.1:5173/widget-standalone-test.html</code> (same server as the iframe —
+      simplest). If you use Live Server on :5500 instead, keep Vite running in another terminal and
+      ensure <code>base-url</code> below matches the URL that loads the app in a new tab.
+    </aside>
+    <script
+      hr-agent-id="script-v1"
+      src="./scripts/widget.js"
+      base-url="http://127.0.0.1:5173"
+      token="eyJhbGciOiJSUzI1NiIsImtpZCI6Ilg1ZVhrNHh5b2pORnVtMWtsMll0djhkbE5QNC1jNTdkTzZRR1RWQndhTmsiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NzU4MTEyOTUsIm5iZiI6MTc3NTcyNDg5NSwidmVyIjoiMS4wIiwiaXNzIjoiaHR0cHM6Ly9kZW1vb25ibGlja2lkZW50aXR5LmIyY2xvZ2luLmNvbS9hNmVkNDhiNC0zMjlkLTQ4ZmUtOGM2YS1hNGFlMTc2YTczZTIvdjIuMC8iLCJzdWIiOiIwMjY2ODdlNC00MWYyLTQwNGUtYjdiYy0zMjZhMzgyNDIwN2IiLCJhdWQiOiI5NWZhMzUxYS1jZDJkLTRmNzUtYWE0NS04N2E2N2Y2ZjJhYWMiLCJub25jZSI6IjYzOTExMzIxNjg4NDQxOTM5OC5NalUyTldFMk5URXROVEUyWlMwME9ERmhMV0l5Tm1ZdE5UaGtPVFppWmpVd1l6SmhOemd4TkRrMVltTXROamN4TlMwME4yUXlMVGxpTlRBdFpUYzVObUZqTVRreVlqVTMiLCJpYXQiOjE3NzU3MjQ4OTUsImF1dGhfdGltZSI6MTc3NTcyNDg5NSwiZXh0ZW5zaW9uX2N1cnJlbnRSb2xlIjoiQWRtaW4sSFJNYW5hZ2VyIiwibmFtZSI6IlNhamphZCAgIEFsaSIsImdpdmVuX25hbWUiOiJTYWpqYWQiLCJleHRlbnNpb25fbW9iaWxlIjoiKzEgNjUxMjQ1NzgzNiIsImV4dGVuc2lvbl9vcmdhbml6YXRpb25JZCI6IjVmMmNlZjQwZDg2NGM1MDJiY2Y1ZGFlYSIsImV4dGVuc2lvbl9wcm9kdWN0cyI6IldlYiIsImV4dGVuc2lvbl9wcm9maWxlUGljdHVyZSI6Imh0dHBzOi8vZGVtby5vbmJsaWNrLmNvbS9maWxlL3B1YmxpYy9TYWpqYWRBbGlfUGljb2JrLmpwZz92PTIwMjUwNTEzMTYxNzEwNzkiLCJleHRlbnNpb25fcm9sZSI6IkFkbWluLEhSTWFuYWdlciIsImZhbWlseV9uYW1lIjoiQWxpIiwiZXh0ZW5zaW9uX3VzZXJJZCI6IjVmMmNlZjQwZDg2NGM1MDJiY2Y1ZGFlOSIsImV4dGVuc2lvbl91c2VybmFtZSI6ImRlbW9AZGVtb3N1cHBvcnQudGsiLCJlbWFpbHMiOlsiZGVtb0BkZW1vc3VwcG9ydC50ayJdLCJ0ZnAiOiJCMkNfMV9zdXNpIn0.nWtg2LWZV0W4ASVLCRCaIt5wksjLRU7I6XRZ3mEPua5j-O8Rm_s3l4hILvlfUfJlFki85TGQ16JpfxZptAUR-pakrPbaKxPP-B4_y7ZWDBo8Ede0qKgqUNJjIkUpBXlU2K1Hd7uOkRl7auNV0KWCQRVNDmkP9ghCnJDVHRcRAtvfMigg244m-jBWBGxmZlbrJd-srhg7xlIMAn3SuakCDCHOQiDPkxK_g0BFRaDDs34YHjygn8Hhcl06_mNx-2YrHoS8L6WwfLr_j25ANo2V1lY2vwtadAifKCgCnJFNWgDQufnQzW4NLTPbEYVZ07jQqiEezveCEWuDJdQWpnauJA"
+      user-data=""
+      organization-data=""
+      widget-top-offset="0px"
+      widget-bottom-offset="64px"
+    ></script>
+  </body>
+</html>

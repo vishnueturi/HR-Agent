@@ -1,0 +1,13 @@
+/* Critical layout for full-viewport SPA (no inline <style> in index.html) */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}

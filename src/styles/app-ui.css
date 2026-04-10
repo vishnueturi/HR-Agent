@@ -1,0 +1,657 @@
+/* App-specific UI (chat, modals, surfaces). Uses variables from theme.css */
+
+/* --- Shared utilities --- */
+.font-app {
+  font-family: var(--font-source-sans-pro);
+}
+
+.text-app-base {
+  font-size: var(--text-base);
+  font-family: var(--font-source-sans-pro);
+}
+
+.text-app-sm {
+  font-size: var(--text-sm);
+  font-family: var(--font-source-sans-pro);
+}
+
+.text-app-xs {
+  font-size: var(--text-xs);
+  font-family: var(--font-source-sans-pro);
+}
+
+.icon-foreground {
+  color: var(--foreground);
+}
+
+.icon-muted {
+  color: var(--muted-foreground);
+}
+
+.icon-sidebar {
+  color: var(--sidebar-foreground);
+}
+
+.icon-destructive {
+  color: var(--destructive);
+}
+
+.icon-opacity-70 {
+  opacity: 0.7;
+}
+
+.icon-opacity-85 {
+  opacity: 0.85;
+}
+
+.icon-opacity-60 {
+  opacity: 0.6;
+}
+
+/* Interactive row / nav (replaces imperative hover background) */
+.ui-nav-row {
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    transform var(--motion-duration-instant) var(--motion-ease-standard);
+}
+
+.ui-nav-row:hover {
+  background-color: var(--surface-hover);
+}
+
+.ui-nav-row:active {
+  transform: scale(0.99);
+}
+
+/* Surfaces & elevation */
+.ui-surface-card {
+  background-color: var(--card);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-surface);
+  transition:
+    box-shadow var(--motion-duration-normal) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.ui-surface-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+.ui-popover-panel {
+  background-color: var(--card);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-popover);
+}
+
+.ui-input-edit {
+  background-color: transparent;
+  border: 1px solid var(--border-input);
+  color: var(--foreground);
+  font-size: var(--text-base);
+  font-family: var(--font-source-sans-pro);
+  outline: none;
+  border-radius: var(--radius-sm);
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.ui-input-edit:focus {
+  border-color: color-mix(in srgb, var(--ring) 55%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 22%, transparent);
+}
+
+.ui-sidebar-input {
+  background-color: transparent;
+  border: 1px solid var(--border-input);
+  color: var(--sidebar-foreground);
+  font-size: var(--text-base);
+  font-family: var(--font-source-sans-pro);
+  outline: none;
+  border-radius: var(--radius-sm);
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.ui-sidebar-input:focus {
+  border-color: color-mix(in srgb, var(--sidebar-ring) 50%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--sidebar-ring) 18%, transparent);
+}
+
+/* Chat markdown — Recco `EmailMarkdown.tsx` + `home/chat/Chat.js` + `app-base.css` `.markdown-text` */
+.chat-markdown {
+  font-family: var(--font-source-sans-pro);
+}
+
+/*
+ * HR API text is often one glued line; `chatMarkdownNormalize.ts` turns it into real Markdown so `marked`
+ * emits headings, lists, and hr — then these rules apply. Without that, you mostly get one <p> and CSS barely helps.
+ */
+.chat-markdown.markdown-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  line-height: 1.55;
+}
+
+.chat-markdown :where(p) {
+  font-size: var(--text-base);
+  color: var(--foreground);
+  line-height: inherit;
+  margin-bottom: 0.65rem;
+}
+
+.chat-markdown.markdown-text :where(p:last-child) {
+  margin-bottom: 0;
+}
+
+.chat-markdown.markdown-text :where(h1, h2, h3):first-child {
+  margin-top: 0;
+}
+
+.chat-markdown :where(h1) {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
+}
+
+.chat-markdown :where(h2) {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.chat-markdown.markdown-text :where(h2) {
+  margin-top: 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.chat-markdown :where(h3) {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+}
+
+.chat-markdown.markdown-text :where(h3) {
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.65rem;
+  background: color-mix(in srgb, var(--muted) 62%, transparent);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary);
+}
+
+.chat-markdown.markdown-text :where(h3):first-of-type {
+  margin-top: 0;
+}
+
+.chat-markdown :where(h4) {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+  margin-top: 0.75rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-hairline) 85%, transparent);
+}
+
+.chat-markdown :where(strong) {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.chat-markdown :where(em) {
+  font-style: italic;
+  color: var(--foreground);
+}
+
+.chat-markdown :where(ul) {
+  list-style-type: disc;
+  padding-left: 1.35rem;
+  margin-bottom: 0.65rem;
+  margin-top: 0.35rem;
+  font-size: var(--text-base);
+  color: var(--foreground);
+  line-height: inherit;
+}
+
+.chat-markdown :where(ol) {
+  list-style-type: decimal;
+  padding-left: 1.35rem;
+  margin-bottom: 0.65rem;
+  margin-top: 0.35rem;
+  font-size: var(--text-base);
+  color: var(--foreground);
+  line-height: inherit;
+}
+
+.chat-markdown :where(li) {
+  margin-bottom: 0.35rem;
+}
+
+.chat-markdown :where(li:last-child) {
+  margin-bottom: 0;
+}
+
+/* GFM often wraps list text in <p>; tighten so stats/questions read as one block */
+.chat-markdown.markdown-text :where(li > p) {
+  margin-bottom: 0;
+  line-height: inherit;
+}
+
+/* Recco `styles/app-base.css` — `.markdown-text` link colors (chat uses `markdown-text` on the same node) */
+.chat-markdown.markdown-text :where(a) {
+  color: #00aaff !important;
+  text-decoration: none;
+}
+
+.chat-markdown.markdown-text :where(a:hover) {
+  color: #66c2ff !important;
+  text-decoration: underline;
+}
+
+.chat-markdown :where(blockquote) {
+  border-left: 4px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+  padding-left: 0.85rem;
+  margin-left: 0;
+  margin-bottom: 0.65rem;
+  color: var(--muted-foreground);
+  font-style: italic;
+  line-height: inherit;
+}
+
+.chat-markdown :where(hr) {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+.chat-markdown .chat-md-table-wrap {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+/*
+ * JSON list tables: horizontal scroll only (vertical scroll is the main chat column).
+ * Themed scrollbars via `.ui-themed-scroll`. `scrollbar-gutter: stable` avoids column jump when the horizontal bar appears.
+ */
+.chat-json-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.chat-markdown :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: var(--shadow-surface);
+}
+
+/* Wide JSON tables extend horizontally; scroll stays inside .chat-json-table-scroll */
+.chat-json-table-scroll :where(table) {
+  width: max-content;
+  min-width: 100%;
+}
+
+.chat-markdown :where(thead) {
+  background-color: var(--muted);
+}
+
+.chat-markdown :where(tr) {
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-markdown :where(th) {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-right: 1px solid var(--border);
+}
+
+.chat-markdown :where(td) {
+  padding: 0.75rem;
+  border-right: 1px solid var(--border);
+}
+
+.chat-markdown :where(pre) {
+  background-color: var(--card);
+  padding: 1rem;
+  border-radius: var(--radius);
+  overflow: auto;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-surface);
+}
+
+.chat-markdown pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.chat-markdown :where(p code),
+.chat-markdown :where(li code),
+.chat-markdown :where(td code) {
+  background-color: var(--muted);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--foreground);
+  border: 1px solid var(--border-hairline);
+}
+
+/* Code block wrapper (structured blocks from message.codeBlocks) */
+.ui-chat-code-block {
+  background-color: var(--card);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-surface);
+}
+
+.ui-chat-code-toolbar {
+  background-color: var(--muted);
+  border-color: var(--border);
+}
+
+.ui-chat-code-body {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+}
+
+/* Attachment / composer pills */
+.ui-attachment-pill {
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-hairline);
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.ui-attachment-pill:hover {
+  box-shadow: var(--shadow-surface);
+}
+
+.ui-pill-remove {
+  background-color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  transition: opacity var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+/* Avatar & badges */
+.ui-avatar-primary {
+  background-color: var(--primary);
+}
+
+.ui-avatar-primary-text {
+  color: var(--primary-foreground);
+  font-size: var(--text-base);
+  font-family: var(--font-source-sans-pro);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ui-avatar-accent {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.ui-empty-icon-wrap {
+  background-color: var(--primary-soft);
+  transition: transform var(--motion-duration-slow) var(--motion-ease-out);
+}
+
+.ui-empty-icon-wrap svg {
+  color: var(--primary);
+}
+
+/* Drag overlay */
+.ui-drag-overlay-surface {
+  background-color: var(--overlay-drag);
+  border: 2px dashed var(--border-drag-dashed);
+  backdrop-filter: blur(4px);
+  transition: opacity var(--motion-duration-normal) var(--motion-ease-out);
+}
+
+/* Composer */
+.ui-composer-shell {
+  background-color: var(--card);
+  box-shadow: var(--shadow-surface);
+  border: 1px solid var(--border-hairline);
+  transition:
+    box-shadow var(--motion-duration-normal) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.ui-composer-textarea {
+  font-size: var(--text-base);
+  font-family: var(--font-source-sans-pro);
+  color: var(--foreground);
+  line-height: 1.5;
+  min-height: 24px;
+  max-height: 200px;
+  /* Auto-grow with content (Chromium 123+, Safari 17.4+); older browsers use JS fallback in ChatArea */
+  field-sizing: content;
+}
+
+.ui-send-btn {
+  background-color: var(--foreground);
+  color: var(--background);
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease-out),
+    opacity var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.ui-send-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+
+.ui-send-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ui-scroll-bottom-btn {
+  background-color: var(--foreground);
+  color: var(--background);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Loading strip (older messages) */
+.ui-history-loading {
+  font-size: var(--text-sm);
+  font-family: var(--font-source-sans-pro);
+  color: var(--foreground);
+  opacity: 0.55;
+  background-color: var(--surface-subtle);
+}
+
+/* Modal search */
+.ui-modal-backdrop {
+  background-color: var(--overlay-scrim);
+  backdrop-filter: blur(2px);
+}
+
+.ui-modal-panel {
+  max-height: min(560px, calc(100vh - 2rem));
+  background-color: var(--card);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-elevated);
+}
+
+.ui-modal-search-input {
+  font-size: var(--text-base);
+  font-family: var(--font-source-sans-pro);
+  color: var(--foreground);
+}
+
+.ui-chat-row-active {
+  background-color: var(--muted);
+}
+
+/* Chart block */
+.ui-chart-card {
+  background-color: var(--card);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-surface);
+}
+
+.ui-chart-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 1rem;
+}
+
+/* Recharts — axis tick text via wrapper */
+.ui-chart-block .recharts-cartesian-axis-tick text {
+  font-size: var(--text-xs);
+}
+
+/* File row / audio */
+.ui-file-attachment-row {
+  background-color: var(--card);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-surface);
+}
+
+.ui-audio-progress-track {
+  background-color: var(--muted);
+}
+
+.ui-audio-progress-fill {
+  background-color: var(--primary);
+}
+
+/* HR data cards header (muted strip) */
+.ui-card-header-muted {
+  background-color: var(--muted);
+}
+
+/* Message action buttons */
+.ui-msg-action-btn {
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    transform var(--motion-duration-instant) var(--motion-ease-standard);
+}
+
+.ui-msg-action-btn:hover {
+  background-color: var(--surface-hover);
+}
+
+.ui-msg-action-btn:active {
+  transform: scale(0.96);
+}
+
+/* Radix Progress — fill position driven by --progress (0–100), set in JSX */
+.ui-progress-indicator {
+  transform: translateX(calc((var(--progress, 0) - 100) * 1%));
+}
+
+/* Waveform bar — height from --bar-height (per-bar), set in JSX */
+.ui-waveform-bar {
+  width: 2px;
+  height: var(--bar-height, 25%);
+  border-radius: 1px;
+  background-color: var(--foreground);
+  opacity: 0.7;
+  transition: height 0.1s ease;
+}
+
+/* Legacy clipboard fallback: off-screen textarea (created in JS) */
+.ui-copy-fallback-textarea {
+  position: fixed;
+  left: -999999px;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Modal open: lock scroll (SearchChatsModal toggles class on body) */
+body.ui-modal-open {
+  overflow: hidden !important;
+}
+
+/* Sonner toaster theme tokens (see src/app/components/ui/sonner.tsx) */
+.toaster.group {
+  --normal-bg: var(--popover);
+  --normal-text: var(--popover-foreground);
+  --normal-border: var(--border);
+}
+
+/* shadcn Sidebar: mobile sheet uses wider rail */
+[data-sidebar="sidebar"][data-mobile="true"] {
+  --sidebar-width: 18rem;
+}
+
+/* Chart (ui/chart.tsx): dynamic colors — variables set on the node in JSX */
+.ui-chart-tooltip-indicator {
+  background-color: var(--indicator-color);
+  border-color: var(--indicator-color);
+}
+
+.ui-chart-tooltip-indicator.border-dashed {
+  background-color: transparent;
+}
+
+.ui-chart-legend-swatch {
+  background-color: var(--swatch);
+}
+
+[data-sidebar='menu-skeleton-text'] {
+  max-width: var(--skeleton-width, 70%);
+}
+
+/* Sidebar brand orb */
+.ui-sidebar-brand-orb {
+  background-color: var(--surface-active);
+  color: var(--sidebar-foreground);
+  box-shadow: var(--shadow-surface);
+}
+
+/* Mobile layout helpers */
+.chat-main-container {
+  width: 100%;
+  max-width: 48rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .chat-main-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-nav-row,
+  .ui-surface-card,
+  .ui-composer-shell,
+  .ui-send-btn,
+  .ui-msg-action-btn,
+  .ui-empty-icon-wrap {
+    transition: none;
+  }
+}

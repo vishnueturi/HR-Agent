@@ -1,0 +1,396 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  
+  /* Typography Variables */
+  --text-3xl: 32px;
+  --text-2xl: 24px;  
+  --text-xl: 18px;
+  --text-lg: 16px;
+  --text-base: 14px;
+  --text-sm: 12px;
+  --text-xs: 10px;
+  
+  /* Font Weights */
+  --font-weight-bold: 700;
+  --font-weight-semibold: 600;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  
+  /* Font Family */
+  --font-source-sans-pro: 'Source Sans Pro', sans-serif;
+  
+  /* The default background color for the application. */
+  --background: rgba(255, 255, 255, 1.00);
+  /* The default color for elements or text that appears on top of the background. */
+  --foreground: rgba(21, 21, 21, 1.00);
+  /* The background color for cards, modals, and other containers. */
+  --card: rgba(255, 255, 255, 1.00);
+  /* The default color for text or elements that appear on top of cards, modals and other background containers. */
+  --card-foreground: rgba(21, 21, 21, 1.00);
+  /* The background color for dropdowns and tooltips. */
+  --popover: rgba(255, 255, 255, 1.00);
+  /* The default color for text or elements that appear on top of dropdowns and tooltips. */
+  --popover-foreground: rgba(21, 21, 21, 1.00);
+  /* The primary color used for buttons, links, and other interactive elements. */
+  --primary: rgba(20, 51, 97, 1.00);
+  /* The default color for text or elements that appear on top of primary colored elements. */
+  --primary-foreground: rgba(255, 255, 255, 1.00);
+  /* The secondary color used for secondary(but NOT-DESTRUCTIVE) buttons and interactive elements. */
+  --secondary: rgba(199, 17, 66, 1.00);
+  /* The default color for text or elements that appear on top of secondary colored elements. */
+  --secondary-foreground: rgba(255, 255, 255, 1.00);
+  /* The muted color used for less prominent elements, such as disabled buttons or disabled text. */
+  --muted: rgba(238, 238, 238, 1.00);
+  /* The default color for text or elements that appear on top of muted colored elements. */
+  --muted-foreground: rgba(117, 117, 117, 1.00);
+  /* The accent color used for highlights, links, and other interactive elements. */
+  --accent: rgba(199, 17, 66, 1.00);
+  /* The default color for text or elements that appear on top of accent colored elements. */
+  --accent-foreground: rgba(255, 255, 255, 1.00);
+  /* The color used for background in destructive actions, such as delete buttons or error messages. */
+  --destructive: rgba(176, 0, 32, 1.00);
+  /* The default color for text or elements that appear on top of destructive colored elements. */
+  --destructive-foreground: rgba(255, 255, 255, 1.00);
+  /* The default border color for elements such as inputs, buttons, and other containers. */
+  --border: rgba(97, 97, 97, 1.00);
+  /* The default background color for input fields once the text has been filled. Should be either transparent or match the input-background. */
+  --input: rgba(0, 0, 0, 0);
+  /* The default background color for input fields, text areas, and other input elements. */
+  --input-background: rgba(238, 238, 238, 1.00);
+  /* The color for focus rings, outlines, and other focus indicators. */
+  --ring: rgba(20, 51, 97, 1.00);
+  /* Shadow for small elevations, such as cards or modals. */
+  --elevation-sm: 1px 0px 1px 0px rgba(33,33,33,0.25);
+  /* The color for chart elements, such as a bar or line in a chart. */
+  --chart-1: rgba(20, 51, 97, 1.00);
+  /* The color for another chart element, such as a bar or line in a chart. */
+  --chart-2: rgba(199, 17, 66, 1.00);
+  /* The color for another chart element, such as a bar or line in a chart. */
+  --chart-3: rgba(33, 150, 243, 1.00);
+  /* The color for another chart element, such as a bar or line in a chart. */
+  --chart-4: rgba(0, 200, 83, 1.00);
+  /* The color for another chart element, such as a bar or line in a chart. */
+  --chart-5: rgba(255, 160, 0, 1.00);
+  /* The default border radius for elements such as buttons, tooltip, and other containers. */
+  --radius: 4px;
+  /* Border radius specifically for buttons. */
+  --radius-button: 4px;
+  /* Border radius for cards and other container elements. */
+  --radius-card: 4px;
+  /* Border radius for chip elements. */
+  --radius-chip: 32px;
+  /* The background color for sidebars, navigation menus, and other persistent elements. */
+  --sidebar: rgba(255, 255, 255, 1.00);
+  /* Narrow collapsed rail (ChatGPT-style), slightly different from expanded sidebar */
+  --sidebar-rail: rgba(242, 242, 242, 1.00);
+  /* The default color for text or elements that appear on top of sidebars, navigation menus, and other persistent elements. */
+  --sidebar-foreground: rgba(21, 21, 21, 1.00);
+  /* The primary color used for buttons, links, and other interactive elements in sidebars and navigation menus. */
+  --sidebar-primary: rgba(20, 51, 97, 1.00);
+  /* The default color for text or elements that appear on top of primary colored elements in sidebars and navigation menus. */
+  --sidebar-primary-foreground: rgba(255, 255, 255, 1.00);
+  /* The accent color used for highlights, links, and other interactive elements in sidebars and navigation menus. */
+  --sidebar-accent: rgba(199, 17, 66, 1.00);
+  /* The default color for text or elements that appear on top of accent colored elements in sidebars and navigation menus. */
+  --sidebar-accent-foreground: rgba(255, 255, 255, 1.00);
+  /* The default border color for elements in sidebars and navigation menus. */
+  --sidebar-border: rgba(33, 33, 33, 0.25);
+  /* The default color for focus rings, outlines, and other focus indicators in sidebars and navigation menus. */
+  --sidebar-ring: rgba(20, 51, 97, 1.00);
+
+  /* Motion — subtle, consistent timing (respect prefers-reduced-motion in index.css) */
+  --motion-duration-instant: 100ms;
+  --motion-duration-fast: 180ms;
+  --motion-duration-normal: 260ms;
+  --motion-duration-slow: 380ms;
+  --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Scrollbars: track must not be "transparent" — Chromium uses a light fallback. Thumb/track follow theme. */
+  --ui-scrollbar-thumb: color-mix(in srgb, var(--foreground) 30%, transparent);
+  --ui-scrollbar-track: var(--background);
+
+  /* Theme-aware surfaces & borders (no light/dark branches in JS) */
+  --surface-hover: color-mix(in srgb, var(--foreground) 6%, transparent);
+  --surface-active: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --surface-subtle: color-mix(in srgb, var(--foreground) 4%, transparent);
+  --border-hairline: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --border-input: color-mix(in srgb, var(--foreground) 20%, transparent);
+  --overlay-scrim: color-mix(in srgb, #000000 50%, transparent);
+  --overlay-drag: color-mix(in srgb, var(--foreground) 5%, transparent);
+  --border-drag-dashed: color-mix(in srgb, var(--foreground) 30%, transparent);
+  --shadow-surface: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-elevated: 0 4px 14px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+  --shadow-popover: 0 4px 12px rgba(15, 23, 42, 0.15);
+  --primary-soft: color-mix(in srgb, var(--primary) 12%, transparent);
+
+  /* shadcn Sidebar layout (see src/app/components/ui/sidebar.tsx) */
+  --sidebar-width: 16rem;
+  --sidebar-width-icon: 3rem;
+}
+
+.dark {
+  --background: rgba(21, 21, 21, 1.00);
+  --foreground: rgba(255, 255, 255, 1.00);
+  --card: rgba(21, 21, 21, 1.00);
+  --card-foreground: rgba(255, 255, 255, 1.00);
+  --popover: rgba(21, 21, 21, 1.00);
+  --popover-foreground: rgba(255, 255, 255, 1.00);
+  --primary: rgba(20, 51, 97, 1.00);
+  --primary-foreground: rgba(255, 255, 255, 1.00);
+  --secondary: rgba(199, 17, 66, 1.00);
+  --secondary-foreground: rgba(255, 255, 255, 1.00);
+  --muted: rgba(97, 97, 97, 1.00);
+  --muted-foreground: rgba(238, 238, 238, 1.00);
+  --accent: rgba(199, 17, 66, 1.00);
+  --accent-foreground: rgba(255, 255, 255, 1.00);
+  --destructive: rgba(176, 0, 32, 1.00);
+  --destructive-foreground: rgba(255, 255, 255, 1.00);
+  --border: rgba(97, 97, 97, 1.00);
+  --input: rgba(0, 0, 0, 0);
+  --ring: rgba(20, 51, 97, 1.00);
+  /* ChatGPT-like sidebar: slightly darker than main canvas */
+  --sidebar: rgba(23, 23, 23, 1.00);
+  --sidebar-rail: rgba(13, 13, 13, 1.00);
+  --sidebar-foreground: rgba(236, 236, 236, 1.00);
+  --sidebar-primary: rgba(20, 51, 97, 1.00);
+  --sidebar-primary-foreground: rgba(255, 255, 255, 1.00);
+  --sidebar-accent: rgba(199, 17, 66, 1.00);
+  --sidebar-accent-foreground: rgba(255, 255, 255, 1.00);
+  --sidebar-border: rgba(97, 97, 97, 1.00);
+  --sidebar-ring: rgba(20, 51, 97, 1.00);
+
+  --surface-hover: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --surface-active: color-mix(in srgb, var(--foreground) 12%, transparent);
+  --surface-subtle: color-mix(in srgb, var(--foreground) 5%, transparent);
+  --border-hairline: color-mix(in srgb, var(--foreground) 12%, transparent);
+  --border-input: color-mix(in srgb, var(--foreground) 28%, transparent);
+  --overlay-scrim: color-mix(in srgb, #000000 55%, transparent);
+  --overlay-drag: color-mix(in srgb, var(--foreground) 6%, transparent);
+  --border-drag-dashed: color-mix(in srgb, var(--foreground) 35%, transparent);
+  --shadow-surface: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-elevated: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --primary-soft: color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+/*
+ * HR portal embed (iframe widget only — html.hr-widget from main.tsx).
+ * Softer surfaces and typography: layered grays, no pure black/white.
+ */
+html.hr-widget:not(.dark) {
+  --background: rgba(243, 245, 249, 1);
+  --foreground: rgba(55, 65, 81, 1);
+  --card: rgba(255, 255, 255, 1);
+  --card-foreground: rgba(55, 65, 81, 1);
+  --popover: rgba(255, 255, 255, 1);
+  --popover-foreground: rgba(55, 65, 81, 1);
+  --primary: rgba(32, 64, 112, 1);
+  --primary-foreground: rgba(255, 255, 255, 1);
+  --secondary: rgba(184, 40, 78, 1);
+  --secondary-foreground: rgba(255, 255, 255, 1);
+  --muted: rgba(229, 233, 240, 1);
+  --muted-foreground: rgba(100, 116, 139, 1);
+  --accent: rgba(184, 40, 78, 1);
+  --accent-foreground: rgba(255, 255, 255, 1);
+  --destructive: rgba(185, 45, 55, 1);
+  --destructive-foreground: rgba(255, 255, 255, 1);
+  --border: rgba(15, 23, 42, 0.09);
+  --input: rgba(0, 0, 0, 0);
+  --input-background: rgba(248, 250, 252, 1);
+  --ring: rgba(32, 64, 112, 0.55);
+  --sidebar: rgba(247, 248, 250, 1);
+  --sidebar-rail: rgba(236, 239, 245, 1);
+  --sidebar-foreground: rgba(55, 65, 81, 1);
+  --sidebar-primary: rgba(32, 64, 112, 1);
+  --sidebar-primary-foreground: rgba(255, 255, 255, 1);
+  --sidebar-accent: rgba(184, 40, 78, 1);
+  --sidebar-accent-foreground: rgba(255, 255, 255, 1);
+  --sidebar-border: rgba(15, 23, 42, 0.08);
+  --sidebar-ring: rgba(32, 64, 112, 0.55);
+}
+
+html.hr-widget.dark {
+  --background: rgba(28, 30, 36, 1);
+  --foreground: rgba(214, 218, 226, 1);
+  --card: rgba(34, 37, 44, 1);
+  --card-foreground: rgba(214, 218, 226, 1);
+  --popover: rgba(38, 41, 49, 1);
+  --popover-foreground: rgba(214, 218, 226, 1);
+  --primary: rgba(72, 112, 168, 1);
+  --primary-foreground: rgba(255, 255, 255, 1);
+  --secondary: rgba(200, 90, 118, 1);
+  --secondary-foreground: rgba(255, 255, 255, 1);
+  --muted: rgba(52, 56, 66, 1);
+  --muted-foreground: rgba(156, 163, 175, 1);
+  --accent: rgba(200, 90, 118, 1);
+  --accent-foreground: rgba(255, 255, 255, 1);
+  --destructive: rgba(200, 90, 100, 1);
+  --destructive-foreground: rgba(255, 255, 255, 1);
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(0, 0, 0, 0);
+  --input-background: rgba(42, 46, 56, 1);
+  --ring: rgba(120, 160, 220, 0.45);
+  --sidebar: rgba(24, 26, 32, 1);
+  --sidebar-rail: rgba(18, 20, 26, 1);
+  --sidebar-foreground: rgba(210, 214, 222, 1);
+  --sidebar-primary: rgba(72, 112, 168, 1);
+  --sidebar-primary-foreground: rgba(255, 255, 255, 1);
+  --sidebar-accent: rgba(200, 90, 118, 1);
+  --sidebar-accent-foreground: rgba(255, 255, 255, 1);
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-ring: rgba(120, 160, 220, 0.45);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-button: var(--radius-button);
+  --radius-card: var(--radius-card);
+  --radius-chip: var(--radius-chip);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --shadow-elevation-sm: var(--elevation-sm);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-source-sans-pro);
+    margin: 0;
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-3xl);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    h3 {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-semibold);
+      line-height: 1.5;
+    }
+
+    h4 {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    p {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    label {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    button {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    input {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    .badge {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-semibold);
+      line-height: 1.5;
+    }
+
+    small, .text-small {
+      font-family: var(--font-source-sans-pro);
+      font-size: var(--text-xs);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+  /* Aligns native scrollbars & form controls with app light/dark (see index.css .ui-themed-scroll for WebKit). */
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}

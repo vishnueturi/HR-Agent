@@ -1,0 +1,318 @@
+@import './html-reset.css';
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+@import './app-ui.css';
+
+@keyframes ui-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ui-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes ui-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes chat-loading-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.chat-loading-dot {
+  background-color: var(--foreground);
+  opacity: 0.6;
+  animation: chat-loading-dot-bounce 1.4s infinite ease-in-out both;
+}
+
+.chat-loading-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+.chat-loading-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+.chat-loading-dot:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-loading-dot {
+    animation: none;
+    opacity: 0.65;
+  }
+}
+
+/* Subtle entrance for chat turns (one-shot on mount) */
+.ui-chat-turn {
+  animation: ui-fade-in-up var(--motion-duration-normal) var(--motion-ease-out) both;
+}
+
+.ui-empty-state-hero {
+  animation: ui-fade-in-up var(--motion-duration-slow) var(--motion-ease-out) both;
+}
+
+.ui-input-composer {
+  transition:
+    box-shadow var(--motion-duration-normal) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    border-radius var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.ui-input-composer:focus-within {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 0 0 1px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+
+.dark .ui-input-composer:focus-within {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.35),
+    0 0 0 1px color-mix(in srgb, var(--ring) 45%, transparent);
+}
+
+.ui-loading-strip {
+  animation: ui-fade-in var(--motion-duration-normal) var(--motion-ease-out) both;
+}
+
+.ui-scroll-to-bottom {
+  animation: ui-scale-in var(--motion-duration-fast) var(--motion-ease-out) both;
+}
+
+.ui-drag-overlay {
+  animation: ui-fade-in var(--motion-duration-fast) var(--motion-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-chat-turn,
+  .ui-empty-state-hero,
+  .ui-loading-strip,
+  .ui-scroll-to-bottom,
+  .ui-drag-overlay {
+    animation: none !important;
+  }
+
+  .ui-input-composer {
+    transition: none;
+  }
+}
+
+@layer base {
+  :where(button:not(:disabled)) {
+    cursor: pointer;
+  }
+  :where(button:disabled) {
+    cursor: not-allowed;
+  }
+  :where(a[href]) {
+    cursor: pointer;
+  }
+  :where([role='button']:not([aria-disabled='true'])) {
+    cursor: pointer;
+  }
+  :where(summary) {
+    cursor: pointer;
+  }
+  :where(label[for]) {
+    cursor: pointer;
+  }
+  :where(select:not(:disabled)) {
+    cursor: pointer;
+  }
+  :where(input[type='checkbox']:not(:disabled)),
+  :where(input[type='radio']:not(:disabled)) {
+    cursor: pointer;
+  }
+}
+
+/* Themed scrollbars (Firefox scrollbar-color + WebKit). Use on overflow-auto regions. */
+.ui-themed-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-scrollbar-thumb) var(--ui-scrollbar-track);
+}
+
+.ui-themed-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ui-themed-scroll::-webkit-scrollbar-track {
+  background: var(--ui-scrollbar-track);
+}
+
+.ui-themed-scroll::-webkit-scrollbar-thumb {
+  background: var(--ui-scrollbar-thumb);
+  border-radius: 6px;
+}
+
+.ui-themed-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ui-scrollbar-thumb) 85%, var(--foreground));
+}
+
+/* ------------------------------------------------------------------ */
+/* Chat shell — borders & elevation (standalone + HR embed iframe)    */
+/* ------------------------------------------------------------------ */
+
+html header.flex-shrink-0.border-b {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--border) 70%, transparent),
+    0 10px 28px -14px rgba(15, 23, 42, 0.12);
+}
+
+html.dark header.flex-shrink-0.border-b {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--border) 80%, transparent),
+    0 12px 36px -16px rgba(0, 0, 0, 0.55);
+}
+
+html aside.h-screen.flex-shrink-0 {
+  box-shadow:
+    4px 0 22px rgba(15, 23, 42, 0.07),
+    inset -1px 0 0 color-mix(in srgb, var(--border) 85%, transparent) !important;
+}
+
+html.dark aside.h-screen.flex-shrink-0 {
+  box-shadow:
+    6px 0 28px rgba(0, 0, 0, 0.4),
+    inset -1px 0 0 color-mix(in srgb, var(--border) 90%, transparent) !important;
+}
+
+html .ui-input-composer {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 6px 20px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+  border-color: color-mix(in srgb, var(--border) 100%, transparent) !important;
+}
+
+html.dark .ui-input-composer {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.22),
+    0 14px 36px -10px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+html .ui-input-composer:focus-within {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 8px 24px rgba(15, 23, 42, 0.1),
+    0 0 0 1px color-mix(in srgb, var(--ring) 32%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}
+
+html.dark .ui-input-composer:focus-within {
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    0 0 0 1px color-mix(in srgb, var(--ring) 38%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+html .ui-input-composer button.w-8.h-8.rounded-full.flex-shrink-0 {
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.16),
+    0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+html.dark .ui-input-composer button.w-8.h-8.rounded-full.flex-shrink-0 {
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+html .ui-chat-turn .w-8.h-8.rounded-full.flex-shrink-0 {
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.14),
+    0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+html.dark .ui-chat-turn .w-8.h-8.rounded-full.flex-shrink-0 {
+  box-shadow:
+    0 3px 14px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+html .ui-empty-state-hero .w-20.h-20.rounded-full {
+  box-shadow:
+    0 8px 28px rgba(15, 23, 42, 0.12),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+html.dark .ui-empty-state-hero .w-20.h-20.rounded-full {
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html .ui-scroll-to-bottom {
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.2),
+    0 2px 6px rgba(15, 23, 42, 0.1) !important;
+}
+
+html.dark .ui-scroll-to-bottom {
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.35) !important;
+}
+
+html .ui-loading-strip {
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+html.dark .ui-loading-strip {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+html aside .flex.h-8.w-8.shrink-0.rounded-full,
+html aside .flex.h-8.w-8.items-center.justify-center.rounded-full {
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+html.dark aside .flex.h-8.w-8.shrink-0.rounded-full,
+html.dark aside .flex.h-8.w-8.items-center.justify-center.rounded-full {
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Embed: message list sits between header rule and composer rule (host launcher position unchanged) */
+html.hr-widget .hr-widget-chat-scroll {
+  padding-top: 0.625rem;
+  padding-bottom: 0.875rem;
+  box-sizing: border-box;
+}
+
+html.hr-widget .hr-widget-composer-rail {
+  flex-shrink: 0;
+  padding: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
